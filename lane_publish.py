@@ -6,13 +6,8 @@ import time
 
 import rospy
 
-from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
-
-import carla_common.transforms as trans
-from carla_msgs.msg import CarlaWorldInfo, CarlaEgoVehicleInfo
-from carla_waypoint_types.srv import GetWaypoint, GetActorWaypoint
+from carla_msgs.msg import CarlaEgoVehicleInfo
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -50,11 +45,11 @@ if __name__ == '__main__':
         try:
             _current_lane_info = vehicle.get_world().get_map().get_waypoint(vehicle.get_location())
             print(_current_lane_info.lane_type)
-            print("Right Lane Type: ",_current_lane_info.get_right_lane())
+            #print(_current_lane_info)
+            #print("Right Lane Type: ",_current_lane_info.get_right_lane())
             time.sleep(1.0)
 
             pub.publish(str(_current_lane_info.lane_type))
             rate.sleep()
         except rospy.ROSInterruptException:
             pass
-        
