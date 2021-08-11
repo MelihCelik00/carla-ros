@@ -10,13 +10,12 @@ import utm
 from matplotlib.patches import Arc
 from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import Imu
-from std_msgs.msg import String
-from carla_msgs.msg import CarlaWorldInfo, CarlaEgoVehicleInfo
+from carla_msgs.msg import CarlaWorldInfo
 import tf
 import geometry_msgs
 from std_msgs.msg import Float32
 
-import carla
+
 
 gnssMsg = NavSatFix()
 imuMsg = Imu()
@@ -24,8 +23,6 @@ WIMsg = CarlaWorldInfo()
 currCurvMsg = Float32()
 currCurvHeadMsg = Float32()
 hdMapCounter = 0
-forOnce = 0
-currLaneType = ''
     
 class roadStruct:
     roadId = ''
@@ -35,7 +32,6 @@ class roadStruct:
     roadElevationProfile = ''
     roadLateralProfile = ''
     roadLanes = ''
-    roadLaneCount = 0
     roadObjects = ''
     roadSignals = ''
     planViewGeometry = ''
@@ -200,16 +196,18 @@ def findVehTendency(prevRoad, prevGeoIndex, currRoad, currGeoIndex, nextRoad, ne
     return tendency
     
 
-def sketchLine(geo, roadColour, linewidth): 
+
+
+def sketchLine(geo, roadColour, linewidth):
     ax = plt.gca()
     geoX = float(geo.attrib["x"])+ CoordSysOriginPoiX
     geoY = float(geo.attrib["y"]) + CoordSysOriginPoiY
     hdg = float(geo.attrib["hdg"])
-    length = float(geo.attrib["length"]) # pull roads length
+    length = float(geo.attrib["length"])
     sucX = np.cos(hdg)*length + float(geoX)
     sucY = np.sin(hdg)*length + float(geoY)
-    plt.plot([geoX, sucX], [geoY, sucY], roadColour, linewidth= linewidth)
-    
+    plt.plot([geoX, sucX], [geoY, sucY], roadColour, linewidth= linewidth)     
+
 def sketchArc(geo, roadColour, linewidth):
     ax = plt.gca()
 
@@ -467,7 +465,7 @@ def findDistArc(geo, egoVeh_pos, segLen, printBool):
     return min(distList)
 
 def findDist(road, geoIndex, egoVeh_pos, segLen, printBool):
-    roadGEO = [] 
+    roadGEO = []
     
     for geo in road.roadPlanview.iter("geometry"):
         roadGEO.append(geo)    
@@ -660,9 +658,9 @@ def sketchGeoInRoad(road, geoIndex, roadColour, linewidth):
     
     for child in roadGEO[geoIndex]:
         if child.tag == "arc":
-            sketchArc(roadGEO[geoIndex], roadColour, linewidth) 
+            sketchArc(roadGEO[geoIndex], roadColour, linewidth)
         elif child.tag == "line":
-            sketchLine(roadGEO[geoIndex], roadColour, linewidth) # other lanes would be added here. probably need to implement other lanes like roadGeo implementation 
+            sketchLine(roadGEO[geoIndex], roadColour, linewidth)
         else: 
             print("unsupported geometry type!!!!")
 
@@ -687,7 +685,6 @@ def prepareMap(road, segLen, drawRoad, drawSeg, roadColour, linewidth):
             elif child.tag == "line":
                 if drawRoad:
                     sketchLine(roadGEO[geoIndex], roadColour, linewidth)
-                    #sketchLanes(tempRoadObj.roadLanes,roadGEO[geoIndex], roadColour, linewidth)
 
                 gridElement = findGridLine(roadGEO[geoIndex], segLen, drawSeg, linewidth)
                 for jj in range(len(gridElement)):
@@ -697,61 +694,6 @@ def prepareMap(road, segLen, drawRoad, drawSeg, roadColour, linewidth):
             else: 
                 print("unsupported geometry type!!!!")            
 
-def countLanes(roadLanes): # pull 'lanes' tagged elements
-    _count = 0
-    for child in roadLanes:
-        if child.tag == "laneSection":
-            for sideOfSection in child: # get into the laneSection tag and search for right or left sides
-                if sideOfSection.tag == "right" or sideOfSection.tag == "left":
-                    for laneCount in sideOfSection: # counts all type of lanes but we need only 'driving' type
-                        if laneCount.attrib['type'] == "driving":
-                            #print("Length: ", laneCount.tag, "ID: ", laneCount.attrib['id'])
-                            _count += 1 # for each driveable lane
-
-    return _count # return total count of lanes
-
-def LaneTypeCallback(data): # pull actor info then return lane types(driving, shoulder, biking, none...)
-    global currLaneType
-    currLaneType = data
-    
-    return currLaneType
-
-def sketchLanes(lanes, geo, roadColour, linewidth):
-    count = 0
-    lane_dict = {}
-    ax = plt.gca()
-    geoX = float(geo.attrib["x"])+ CoordSysOriginPoiX
-    geoY = float(geo.attrib["y"]) + CoordSysOriginPoiY
-    hdg = float(geo.attrib["hdg"])
-    length = float(geo.attrib["length"]) # pull roads length
-    sucX = np.cos(hdg)*length + float(geoX)
-    sucY = np.sin(hdg)*length + float(geoY)
-    # reach to <lane/>
-    laneSection = lanes.find("laneSection")
-    road = lanes.find("..")
-    for leftOrRight in laneSection:
-        if leftOrRight.tag == "right" or leftOrRight.tag == "left":
-            for eachLane in leftOrRight:
-                width = eachLane.find("width")
-                a_value = width.attrib["a"]
-                print("'a' value from xodr: ",a_value, " lane id: ",  eachLane.attrib["id"])
-                geox = geoX- (float(a_value) * np.cos(hdg))
-                geoy = geoY - (float(a_value) * np.sin(hdg))
-                sucx = sucX - (float(a_value) * np.cos(hdg))
-                sucy = sucY - (float(a_value) * np.sin(hdg))
-
-                plt.plot([geoX, sucX], [geoY, sucY], roadColour, linewidth= linewidth)
-
-    # <TODO: 
-    # Pull lane width and be sure if the data is true (can check from lane id's) 
-    # Find road id with like root.find
-    # It might be good to pull only the lanes with "driving" and "shoulder" tags
-    # Control lane id's if they are negative or not
-    # Save the new geometry and send to related methods (sketchLine or SketchGeoInRoad)
-    # buradaki geometri kaydedilecek ya sketch line icine ya da sketch geo in road icine yollanacak
-    # TODO/>
-
-    pass
 
 
 if __name__ == '__main__': 
@@ -759,7 +701,6 @@ if __name__ == '__main__':
     rospy.Subscriber("/carla/ego_vehicle/gnss", NavSatFix, gnssCallback)
     rospy.Subscriber("/carla/ego_vehicle/imu", Imu, imuCallback)
     rospy.Subscriber("/carla/world_info", CarlaWorldInfo, WorldInfoCallback)
-    rospy.Subscriber("/vehicle/current_lane_type", String, LaneTypeCallback)
     currCurvPub = rospy.Publisher('/carla/hd_map/currCurv', Float32, queue_size=10)
     currCurvHeadPub = rospy.Publisher('/carla/hd_map/currCurvHead', Float32, queue_size=10)
     rate = rospy.Rate(10) # 10hz
@@ -804,13 +745,7 @@ if __name__ == '__main__':
         tempRoadObj.roadObjects = roadIndex.find('objects')
         tempRoadObj.roadSignals = roadIndex.find('signals')
         roadList[int(tempRoadObj_roadId)] = tempRoadObj
-        
-        print("Road ID: ", tempRoadObj_roadId) ###
-        #print("Length of 'lanes' tag",len(roadIndex.find('lanes')))
-        #print("tempRoadObj.roadLaneCount (BEFORE) ==", tempRoadObj.roadLaneCount)
-        tempRoadObj.roadLaneCount = countLanes(tempRoadObj.roadLanes)
-        print("tempRoadObj.roadLaneCount(Curr. Road Lane Count)= ", tempRoadObj.roadLaneCount)
-
+    
     # 2. Read the Junctions.
     for junctionIndex in hdMapET.iter('junction'):
         junction = junctionStruct()
@@ -872,7 +807,7 @@ if __name__ == '__main__':
 
     ax = plt.gca()
    
-    # Road is sketched above !!!!!!!!
+    
 
     while not rospy.is_shutdown():
         # Get ego-vehicle position.
@@ -890,21 +825,13 @@ if __name__ == '__main__':
         
         if len(distArray) > 0:
             minDistIndex = distArray.index(min(distArray))
-            sketchGeoInRoad(roadList[gridRoadIDList[egoVeh_gridId][minDistIndex]], gridGeoIDList[egoVeh_gridId][minDistIndex], 'r', 3)
+            #sketchGeoInRoad(roadList[gridRoadIDList[egoVeh_gridId][minDistIndex]], gridGeoIDList[egoVeh_gridId][minDistIndex], 'r', 3)
 
             #print("roadID: ", roadList[gridRoadIDList[egoVeh_gridId][minDistIndex]].roadId, " geoID:",  gridGeoIDList[egoVeh_gridId][minDistIndex])
             preRoad, preGeo, preCurv, currRoad, currGeo, currCurv, nextRoad, nextGeo, nextCurv = findCurvature(roadList[gridRoadIDList[egoVeh_gridId][minDistIndex]], gridGeoIDList[egoVeh_gridId][minDistIndex])
             print("PreCurv: ", preCurv, " CurrCurv: ", currCurv, " NextCurv: ", nextCurv)
-           
-            # log current road information
-            print("Current Road ID : ", currRoad.roadId) 
-            print("Current Road Lane Count : ", currRoad.roadLaneCount)
-            
-            print("Current Lane Type Info: ", currLaneType) # defined in LaneTypeCallback method
-
-
-            sketchGeoInRoad(preRoad, preGeo, 'm', 3) #
-            sketchGeoInRoad(nextRoad, nextGeo, 'g', 3) #
+            #sketchGeoInRoad(preRoad, preGeo, 'm', 3)
+            #sketchGeoInRoad(nextRoad, nextGeo, 'g', 3)
 
             vehTendency = findVehTendency(preRoad, preGeo, currRoad, currGeo, nextRoad, nextGeo, egoVehEuler[2])        # Fix the bug !.
             if vehTendency == 'toNext':
@@ -916,7 +843,7 @@ if __name__ == '__main__':
                 tendencyGeo = preGeo
                 tendencyCurv = preCurv
 
-            #sketchGeoInRoad(tendencyRoad, tendencyGeo, 'y', 3) #"m" #
+            #sketchGeoInRoad(tendencyRoad, tendencyGeo, 'y', 3) #"m"
             
             if currCurv != -1:
                 headPos = findCurvSegHeading(currRoad, currGeo, egoVeh_pos[0], egoVeh_pos[1])
@@ -924,13 +851,20 @@ if __name__ == '__main__':
                 currCurvHeadMsg.data = float(headPos)
                 currCurvPub.publish(currCurvMsg)
                 currCurvHeadPub.publish(currCurvHeadMsg)
+            
 
+        
+
+        
 
         plt.draw()       
         plt.show()   
         plt.pause(0.00000000001)
         
         rate.sleep()
+
+
+
 
 
 #xy = utm.from_latlon(gnssMsg.latitude, gnssMsg.longitude)
