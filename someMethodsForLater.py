@@ -22,15 +22,15 @@ def countLanes(roadLanes): # pull 'lanes' tagged elements
     """
     for laneSec in road.roadLanes.iter("laneSection"):
         laneDict[str(road.roadId)] = {}
-        # now in the laneSection tag
+        # for loop is now in the laneSection tag
         for sideOfRoadGeo in laneSec:
             
             for letsGetToTheWidth in sideOfRoadGeo:
                 if sideOfRoadGeo.tag != "center": # left ids are positives, rights are negatives
                     whichSide = sideOfRoadGeo.tag
-                # now should be in the right or left tag
+                # now in the right or the left tag
                     for laneIteration in letsGetToTheWidth.iter("lane"):
-                        # lane iteration is the list of lane tags
+                        # laneIteration is the list of lane tags
                         if not laneIteration.attrib["type"] == "none":
                             widthAttrib = laneIteration.find("width")
                             r_id = road.roadId
@@ -40,12 +40,12 @@ def countLanes(roadLanes): # pull 'lanes' tagged elements
                             
                             laneDict[str(road.roadId)][l_id] = {}
                             laneDict[str(r_id)][l_id] = [widthVal, l_type, whichSide]
-    
+                            # TODO: broken, continous, straight, color vb. attributelar
                             
-                            print("roadId: ", r_id, 
-                                   "laneId: ", l_id, 
-                                   "laneType: ", l_type, 
-                                   "widthValue: ", widthVal)
+                            # print("roadId: ", r_id, 
+                            #        "laneId: ", l_id, 
+                            #        "laneType: ", l_type, 
+                            #        "widthValue: ", widthVal)
 
 def sketchLanes(road, geo, roadId, roadColour, linewidth):
     ax = plt.gca()
@@ -59,20 +59,19 @@ def sketchLanes(road, geo, roadId, roadColour, linewidth):
     sucX = np.cos(hdg)*length + float(geoX)
     sucY = np.sin(hdg)*length + float(geoY) 
 
-    # Georeference by using polar coordinates and find starting points of lanes 1-by-1
+    # navigate through dictionary to pull lane id and 'a' value which are _coeff and dist below
     for laneIdCount in range(len(laneDict[str(roadId)])):
         if laneDict[str(roadId)].values()[laneIdCount][1] == "driving":
             if laneDict[str(roadId)].values()[laneIdCount][2] == "left":
-                _coeff = int(laneDict[str(roadId)].keys()[laneIdCount]) * -1
-                #print("coeff", _coeff)
+                _coeff = int(laneDict[str(roadId)].keys()[laneIdCount])
                 dist = _coeff * float(laneDict[str(roadId)].values()[laneIdCount][0])
 
             elif laneDict[str(roadId)].values()[laneIdCount][2] == "right":
-                _coeff = int(laneDict[str(roadId)].keys()[laneIdCount]) * -1
-                #print("coeff",_coeff)
+                _coeff = int(laneDict[str(roadId)].keys()[laneIdCount])
                 dist = _coeff * float(laneDict[str(roadId)].values()[laneIdCount][0])
             else:
                 pass
+        # Georeference by using polar coordinates and find starting points of lanes 1-by-1
         laneInitialCoord_x = dist * np.cos(90+hdg) + float(geoX)
         laneInitialCoord_y = dist * np.sin(90+hdg) + float(geoY)
         laneFinalCoord_x = np.cos(hdg)*length + float(laneInitialCoord_x)
