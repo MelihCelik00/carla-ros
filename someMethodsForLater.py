@@ -85,6 +85,10 @@ def sketchCurvedLanes(road, geo, roadId, roadColour, linewidth):
     ax = plt.gca()
 
     plotable = False
+    laneInitialCoord_x = 0.0
+    laneInitialCoord_y = 0.0
+    dist = 0.0
+    dist = 0.0
 
     geoX = float(geo.attrib["x"])+ CoordSysOriginPoiX
     geoY = float(geo.attrib["y"]) + CoordSysOriginPoiY
@@ -100,10 +104,10 @@ def sketchCurvedLanes(road, geo, roadId, roadColour, linewidth):
 
             elif laneDict[str(roadId)].values()[laneIdCount][2] == "right":
                 _coeff = int(laneDict[str(roadId)].keys()[laneIdCount])
-                #print("coeff",_coeff)
                 dist = _coeff * float(laneDict[str(roadId)].values()[laneIdCount][0])
             else:
                 pass
+            
         laneInitialCoord_x = dist * np.cos(90+hdg) + float(geoX)
         laneInitialCoord_y = dist * np.sin(90+hdg) + float(geoY)
 
@@ -130,5 +134,6 @@ def sketchCurvedLanes(road, geo, roadId, roadColour, linewidth):
         else: 
             tht2 = tht1 + alfa
 
-        arc_element = Arc((origX, origY), 2*radius, 2*radius, angle=0 , theta1=tht1, theta2=tht2, linewidth= 0.5, zorder=0,color='green', linestyle = "--")
+        arc_element = Arc((origX, origY), 2*radius, 2*radius, angle=0 , theta1=tht1, theta2=tht2, linewidth= 0.5, zorder=0,color='green', linestyle = "dashed")
         ax.add_patch(arc_element)
+
